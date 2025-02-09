@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { type Location } from "@shared/schema";
@@ -16,22 +15,91 @@ export default function NaturalLanguageInput({ onLocationsFound }: NaturalLangua
   const [input, setInput] = useState("");
   const { toast } = useToast();
 
+  // Function to geocode a hotel name using Google Places API
+  async function geocodeHotel(name: string): Promise<{ 
+    placeId: string;
+    latitude: string;
+    longitude: string;
+    address: string;
+  } | null> {
+    const geocoder = new window.google.maps.places.PlacesService(
+      document.createElement('div')
+    );
+
+    return new Promise((resolve) => {
+      geocoder.findPlaceFromQuery(
+        {
+          query: `${name} Tokyo`,
+          fields: ['place_id', 'geometry', 'formatted_address']
+        },
+        (results: any, status: any) => {
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && results[0]) {
+            const place = results[0];
+            resolve({
+              placeId: place.place_id,
+              latitude: place.geometry.location.lat().toString(),
+              longitude: place.geometry.location.lng().toString(),
+              address: place.formatted_address
+            });
+          } else {
+            resolve(null);
+          }
+        }
+      );
+    });
+  }
+
   const parseLocationsMutation = useMutation({
     mutationFn: async (text: string) => {
+      // First, parse the hotels using Anthropic
       const res = await apiRequest("POST", "/api/parse-locations", { input: text });
-      return res.json();
+      const parsedHotels = await res.json();
+
+      // Then, geocode each hotel
+      const geocodedHotels = await Promise.all(
+        parsedHotels.map(async (hotel: any) => {
+          const geocodeResult = await geocodeHotel(hotel.name);
+          if (!geocodeResult) {
+            toast({
+              title: "Warning",
+              description: `Could not find location for: ${hotel.name}`,
+              variant: "destructive",
+            });
+            return null;
+          }
+
+          return {
+            listId: 1, // Default list ID
+            name: hotel.name,
+            ...geocodeResult,
+            metadata: { context: hotel.context }
+          };
+        })
+      );
+
+      // Filter out any hotels that couldn't be geocoded
+      const validHotels = geocodedHotels.filter(Boolean);
+
+      // Add all hotels to the database
+      const addedHotels = await Promise.all(
+        validHotels.map(hotel =>
+          apiRequest("POST", "/api/locations", hotel).then(res => res.json())
+        )
+      );
+
+      return addedHotels;
     },
     onSuccess: (data) => {
       onLocationsFound(data);
       setInput("");
       toast({
-        title: "Hotels parsed successfully",
-        description: `Found ${data.length} hotels`,
+        title: "Hotels added successfully",
+        description: `Added ${data.length} hotels to the map`,
       });
     },
     onError: (error) => {
       toast({
-        title: "Error parsing hotels",
+        title: "Error processing hotels",
         description: error.message,
         variant: "destructive",
       });

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { type Location } from "@shared/schema";
+import { Loader } from "@googlemaps/js-api-loader";
 
 interface MapViewProps {
   center: { lat: number; lng: number };
@@ -19,14 +20,18 @@ export default function MapView({ center, locations, onCenterChange }: MapViewPr
   const markersRef = useRef<any[]>([]);
 
   useEffect(() => {
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
-    script.async = true;
-    script.onload = initMap;
-    document.head.appendChild(script);
+    const loader = new Loader({
+      apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+      version: "weekly",
+      libraries: ["places"]
+    });
+
+    loader.load().then(() => initMap());
 
     return () => {
-      document.head.removeChild(script);
+      if (markersRef.current) {
+        markersRef.current.forEach(marker => marker.setMap(null));
+      }
     };
   }, []);
 
@@ -49,8 +54,8 @@ export default function MapView({ center, locations, onCenterChange }: MapViewPr
     // Add new markers
     locations.forEach((location) => {
       const position = { 
-        lat: Number(location.latitude), 
-        lng: Number(location.longitude) 
+        lat: parseFloat(location.latitude), 
+        lng: parseFloat(location.longitude) 
       };
 
       // Only create marker if coordinates are valid
@@ -59,7 +64,24 @@ export default function MapView({ center, locations, onCenterChange }: MapViewPr
           position,
           map: googleMapRef.current,
           title: location.name,
+          animation: window.google.maps.Animation.DROP
         });
+
+        // Add info window
+        const infoWindow = new window.google.maps.InfoWindow({
+          content: `
+            <div class="p-2">
+              <h3 class="font-bold">${location.name}</h3>
+              ${location.address ? `<p class="text-sm">${location.address}</p>` : ''}
+              ${location.metadata?.context ? `<p class="text-sm text-blue-600">${location.metadata.context}</p>` : ''}
+            </div>
+          `
+        });
+
+        marker.addListener('click', () => {
+          infoWindow.open(googleMapRef.current, marker);
+        });
+
         markersRef.current.push(marker);
         bounds.extend(position);
       }
