@@ -1,7 +1,9 @@
 import { 
-  LocationList, InsertLocationList, 
-  Location, InsertLocation 
+  locationLists, type LocationList, type InsertLocationList,
+  locations, type Location, type InsertLocation 
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // List operations
@@ -16,68 +18,58 @@ export interface IStorage {
   deleteLocation(id: number): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private lists: Map<number, LocationList>;
-  private locations: Map<number, Location>;
-  private listCounter: number;
-  private locationCounter: number;
-
-  constructor() {
-    this.lists = new Map();
-    this.locations = new Map();
-    this.listCounter = 1;
-    this.locationCounter = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async createList(list: InsertLocationList): Promise<LocationList> {
-    const id = this.listCounter++;
-    const newList: LocationList = { 
-      ...list, 
-      id, 
-      description: list.description ?? null 
-    };
-    this.lists.set(id, newList);
+    const [newList] = await db
+      .insert(locationLists)
+      .values(list)
+      .returning();
     return newList;
   }
 
   async getList(id: number): Promise<LocationList | undefined> {
-    return this.lists.get(id);
+    const [list] = await db
+      .select()
+      .from(locationLists)
+      .where(eq(locationLists.id, id));
+    return list;
   }
 
   async getAllLists(): Promise<LocationList[]> {
-    return Array.from(this.lists.values());
+    return db.select().from(locationLists);
   }
 
   async deleteList(id: number): Promise<void> {
-    this.lists.delete(id);
-    // Delete associated locations
-    const locationsToDelete = Array.from(this.locations.entries())
-      .filter(([, location]) => location.listId === id)
-      .map(([id]) => id);
+    // Delete associated locations first
+    await db
+      .delete(locations)
+      .where(eq(locations.listId, id));
 
-    locationsToDelete.forEach(id => this.locations.delete(id));
+    await db
+      .delete(locationLists)
+      .where(eq(locationLists.id, id));
   }
 
   async addLocation(location: InsertLocation): Promise<Location> {
-    const id = this.locationCounter++;
-    const newLocation: Location = {
-      ...location,
-      id,
-      address: location.address ?? null,
-      metadata: location.metadata ?? null
-    };
-    this.locations.set(id, newLocation);
+    const [newLocation] = await db
+      .insert(locations)
+      .values(location)
+      .returning();
     return newLocation;
   }
 
   async getLocations(listId: number): Promise<Location[]> {
-    return Array.from(this.locations.values())
-      .filter(loc => loc.listId === listId);
+    return db
+      .select()
+      .from(locations)
+      .where(eq(locations.listId, listId));
   }
 
   async deleteLocation(id: number): Promise<void> {
-    this.locations.delete(id);
+    await db
+      .delete(locations)
+      .where(eq(locations.id, id));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
