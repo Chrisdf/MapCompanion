@@ -31,30 +31,51 @@ export default function MapView({ center, locations, onCenterChange }: MapViewPr
   }, []);
 
   useEffect(() => {
-    if (googleMapRef.current) {
+    if (googleMapRef.current && center.lat && center.lng) {
       googleMapRef.current.setCenter(center);
     }
   }, [center]);
 
   useEffect(() => {
-    if (!googleMapRef.current) return;
+    if (!googleMapRef.current || !locations.length) return;
 
     // Clear existing markers
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
 
+    // Create bounds object to encompass all markers
+    const bounds = new window.google.maps.LatLngBounds();
+
     // Add new markers
     locations.forEach((location) => {
-      const marker = new window.google.maps.Marker({
-        position: { 
-          lat: Number(location.latitude), 
-          lng: Number(location.longitude) 
-        },
-        map: googleMapRef.current,
-        title: location.name,
-      });
-      markersRef.current.push(marker);
+      const position = { 
+        lat: Number(location.latitude), 
+        lng: Number(location.longitude) 
+      };
+
+      // Only create marker if coordinates are valid
+      if (!isNaN(position.lat) && !isNaN(position.lng)) {
+        const marker = new window.google.maps.Marker({
+          position,
+          map: googleMapRef.current,
+          title: location.name,
+        });
+        markersRef.current.push(marker);
+        bounds.extend(position);
+      }
     });
+
+    // Adjust map to fit all markers if there are any
+    if (markersRef.current.length > 0) {
+      googleMapRef.current.fitBounds(bounds);
+
+      // Get the center after fitting bounds
+      const newCenter = googleMapRef.current.getCenter();
+      onCenterChange({
+        lat: newCenter.lat(),
+        lng: newCenter.lng(),
+      });
+    }
   }, [locations]);
 
   function initMap() {
@@ -79,10 +100,12 @@ export default function MapView({ center, locations, onCenterChange }: MapViewPr
 
     googleMapRef.current.addListener("center_changed", () => {
       const newCenter = googleMapRef.current.getCenter();
-      onCenterChange({
-        lat: newCenter.lat(),
-        lng: newCenter.lng(),
-      });
+      if (newCenter) {
+        onCenterChange({
+          lat: newCenter.lat(),
+          lng: newCenter.lng(),
+        });
+      }
     });
   }
 

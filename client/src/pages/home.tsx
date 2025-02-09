@@ -9,7 +9,7 @@ import { type Location } from "@shared/schema";
 
 export default function Home() {
   const [selectedLocations, setSelectedLocations] = useState<Location[]>([]);
-  const [center, setCenter] = useState({ lat: 40.7128, lng: -74.0060 });
+  const [center, setCenter] = useState({ lat: 35.6762, lng: 139.6503 }); // Tokyo coordinates
 
   return (
     <div className="min-h-screen bg-background">
@@ -21,7 +21,7 @@ export default function Home() {
             onCenterChange={setCenter}
           />
         </Card>
-        
+
         <div className="space-y-4">
           <Card className="p-4">
             <NaturalLanguageInput onLocationsFound={setSelectedLocations} />
@@ -34,7 +34,11 @@ export default function Home() {
               <LocationList
                 locations={selectedLocations}
                 onLocationSelect={(loc) => {
-                  setCenter({ lat: Number(loc.latitude), lng: Number(loc.longitude) });
+                  const lat = Number(loc.latitude);
+                  const lng = Number(loc.longitude);
+                  if (!isNaN(lat) && !isNaN(lng)) {
+                    setCenter({ lat, lng });
+                  }
                 }}
               />
             </ScrollArea>
