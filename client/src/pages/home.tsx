@@ -5,10 +5,12 @@ import { Separator } from "@/components/ui/separator";
 import MapView from "@/components/map-view";
 import LocationList from "@/components/location-list";
 import NaturalLanguageInput from "@/components/natural-language-input";
+import HotelDetail from "@/components/hotel-detail";
 import { type Location } from "@shared/schema";
 
 export default function Home() {
   const [selectedLocations, setSelectedLocations] = useState<Location[]>([]);
+  const [selectedHotel, setSelectedHotel] = useState<Location | null>(null);
   const [center, setCenter] = useState({ lat: 35.6762, lng: 139.6503 }); // Tokyo coordinates
 
   return (
@@ -19,6 +21,7 @@ export default function Home() {
             center={center}
             locations={selectedLocations}
             onCenterChange={setCenter}
+            onLocationSelect={setSelectedHotel}
           />
         </Card>
 
@@ -39,12 +42,18 @@ export default function Home() {
                   if (!isNaN(lat) && !isNaN(lng)) {
                     setCenter({ lat, lng });
                   }
+                  setSelectedHotel(loc);
                 }}
               />
             </ScrollArea>
           </Card>
         </div>
       </div>
+
+      <HotelDetail 
+        hotel={selectedHotel} 
+        onClose={() => setSelectedHotel(null)} 
+      />
     </div>
   );
 }

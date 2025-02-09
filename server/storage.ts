@@ -14,6 +14,7 @@ export interface IStorage {
 
   // Location operations
   addLocation(location: InsertLocation): Promise<Location>;
+  getLocation(id: number): Promise<Location | undefined>;
   getLocations(listId: number): Promise<Location[]>;
   deleteLocation(id: number): Promise<void>;
 }
@@ -56,6 +57,14 @@ export class DatabaseStorage implements IStorage {
       .values(location)
       .returning();
     return newLocation;
+  }
+
+  async getLocation(id: number): Promise<Location | undefined> {
+    const [location] = await db
+      .select()
+      .from(locations)
+      .where(eq(locations.id, id));
+    return location;
   }
 
   async getLocations(listId: number): Promise<Location[]> {

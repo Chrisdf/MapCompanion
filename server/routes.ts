@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { parseLocations } from "./lib/anthropic";
+import { searchRedditComments } from "./lib/reddit";
 import { insertLocationListSchema, insertLocationSchema } from "@shared/schema";
 import { ZodError } from "zod";
 
@@ -70,6 +71,21 @@ export function registerRoutes(app: Express): Server {
       }
       const locations = await parseLocations(input);
       res.json(locations);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  app.get("/api/locations/:id/reddit-comments", async (req, res) => {
+    try {
+      const location = await storage.getLocation(Number(req.params.id));
+      if (!location) {
+        return res.status(404).json({ error: "Location not found" });
+      }
+
+      const comments = await searchRedditComments(location.name);
+      res.json(comments);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       res.status(500).json({ error: errorMessage });

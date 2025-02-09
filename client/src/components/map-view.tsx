@@ -6,6 +6,7 @@ interface MapViewProps {
   center: { lat: number; lng: number };
   locations: Location[];
   onCenterChange: (center: { lat: number; lng: number }) => void;
+  onLocationSelect?: (location: Location) => void;
 }
 
 declare global {
@@ -14,7 +15,7 @@ declare global {
   }
 }
 
-export default function MapView({ center, locations, onCenterChange }: MapViewProps) {
+export default function MapView({ center, locations, onCenterChange, onLocationSelect }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -79,6 +80,9 @@ export default function MapView({ center, locations, onCenterChange }: MapViewPr
         });
 
         marker.addListener('click', () => {
+          if (onLocationSelect) {
+            onLocationSelect(location);
+          }
           infoWindow.open(googleMapRef.current, marker);
         });
 
@@ -98,7 +102,7 @@ export default function MapView({ center, locations, onCenterChange }: MapViewPr
         lng: newCenter.lng(),
       });
     }
-  }, [locations]);
+  }, [locations, onLocationSelect]);
 
   function initMap() {
     if (!mapRef.current) return;
