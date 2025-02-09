@@ -1,6 +1,6 @@
 import { type Location } from "@shared/schema";
 import { Card } from "@/components/ui/card";
-import { MapPin } from "lucide-react";
+import { Building2, MapPin } from "lucide-react";
 
 interface LocationListProps {
   locations: Location[];
@@ -11,7 +11,7 @@ export default function LocationList({ locations, onLocationSelect }: LocationLi
   if (locations.length === 0) {
     return (
       <div className="text-center text-muted-foreground">
-        No locations added yet. Use the input above to add locations.
+        No hotels added yet. Use the input above to add hotels to your list.
       </div>
     );
   }
@@ -25,11 +25,19 @@ export default function LocationList({ locations, onLocationSelect }: LocationLi
           onClick={() => onLocationSelect(location)}
         >
           <div className="flex items-start gap-2">
-            <MapPin className="h-5 w-5 mt-0.5 text-primary" />
-            <div>
+            <Building2 className="h-5 w-5 mt-0.5 text-primary" />
+            <div className="flex-1">
               <h3 className="font-medium">{location.name}</h3>
               {location.address && (
-                <p className="text-sm text-muted-foreground">{location.address}</p>
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {location.address}
+                </p>
+              )}
+              {location.metadata?.context && (
+                <p className="text-sm text-blue-600 mt-1">
+                  {location.metadata.context}
+                </p>
               )}
             </div>
           </div>

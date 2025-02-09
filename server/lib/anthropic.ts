@@ -9,8 +9,13 @@ export async function parseLocations(input: string): Promise<Array<{name: string
   try {
     const response = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
-      system: `You are a location parsing assistant. Extract location names from the user's input and return them in JSON format. 
-              The output should be an array of objects with 'name' and optional 'context' fields.`,
+      system: `You are a hotel and location parsing assistant. Extract hotel names and their details from the input and return them in JSON format.
+              For each hotel, identify:
+              - name: The full hotel name
+              - context: Any special notes or features mentioned (e.g., "highfloor available")
+
+              Format the response as an array of objects with 'name' and optional 'context' fields.
+              Return only valid JSON, no additional text.`,
       max_tokens: 1024,
       messages: [
         { role: 'user', content: input }
