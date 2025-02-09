@@ -4,11 +4,11 @@ import { type InsertLocation } from "@shared/schema";
 const defaultHotels: Omit<InsertLocation, "listId">[] = [
   {
     name: "Dormy Inn Premium Kanda",
-    placeId: "",  // Will be populated by geocoding
+    placeId: "", // Will be populated by geocoding
     latitude: "",
     longitude: "",
     address: "",
-    metadata: {}
+    metadata: {},
   },
   {
     name: "Mitsui Garden Hotel Ginza Gochome",
@@ -16,7 +16,7 @@ const defaultHotels: Omit<InsertLocation, "listId">[] = [
     latitude: "",
     longitude: "",
     address: "",
-    metadata: {}
+    metadata: {},
   },
   {
     name: "Hotel Gracery Shinjuku",
@@ -24,7 +24,7 @@ const defaultHotels: Omit<InsertLocation, "listId">[] = [
     latitude: "",
     longitude: "",
     address: "",
-    metadata: {}
+    metadata: {},
   },
   {
     name: "All Day Place Shibuya",
@@ -32,7 +32,7 @@ const defaultHotels: Omit<InsertLocation, "listId">[] = [
     latitude: "",
     longitude: "",
     address: "",
-    metadata: {}
+    metadata: {},
   },
   {
     name: "Mitsui Garden in Gotanda",
@@ -40,7 +40,7 @@ const defaultHotels: Omit<InsertLocation, "listId">[] = [
     latitude: "",
     longitude: "",
     address: "",
-    metadata: {}
+    metadata: {},
   },
   {
     name: "Hotel Mystays Premier Akasaka",
@@ -48,7 +48,7 @@ const defaultHotels: Omit<InsertLocation, "listId">[] = [
     latitude: "",
     longitude: "",
     address: "",
-    metadata: {}
+    metadata: {},
   },
   {
     name: "Tokyo Prince Hotel",
@@ -56,7 +56,6 @@ const defaultHotels: Omit<InsertLocation, "listId">[] = [
     latitude: "",
     longitude: "",
     address: "",
-    metadata: { context: "highfloor available" }
   },
   {
     name: "Shibuya Excel Hotel Tokyu",
@@ -64,7 +63,7 @@ const defaultHotels: Omit<InsertLocation, "listId">[] = [
     latitude: "",
     longitude: "",
     address: "",
-    metadata: {}
+    metadata: {},
   },
   {
     name: "Via Inn Prime Akasaka",
@@ -72,7 +71,7 @@ const defaultHotels: Omit<InsertLocation, "listId">[] = [
     latitude: "",
     longitude: "",
     address: "",
-    metadata: {}
+    metadata: {},
   },
   {
     name: "Keio Plaza Hotel Tokyo",
@@ -80,7 +79,7 @@ const defaultHotels: Omit<InsertLocation, "listId">[] = [
     latitude: "",
     longitude: "",
     address: "",
-    metadata: {}
+    metadata: {},
   },
   {
     name: "Shibuya Tokyu REI Hotel",
@@ -88,8 +87,8 @@ const defaultHotels: Omit<InsertLocation, "listId">[] = [
     latitude: "",
     longitude: "",
     address: "",
-    metadata: {}
-  }
+    metadata: {},
+  },
 ];
 
 // Function to geocode a hotel name using Google Places API
@@ -112,7 +111,7 @@ async function geocodeHotel(name: string): Promise<{
         placeId: place.place_id,
         latitude: place.geometry.location.lat.toString(),
         longitude: place.geometry.location.lng.toString(),
-        address: place.formatted_address
+        address: place.formatted_address,
       };
     }
     console.error(`Could not find location for: ${name}`);
@@ -130,16 +129,16 @@ export async function initializeDefaultData() {
     if (!defaultList) {
       defaultList = await storage.createList({
         name: "Tokyo Hotels",
-        description: "Default list of hotels in Tokyo"
+        description: "Default list of hotels in Tokyo",
       });
     }
 
-    // Check if we already have hotels in the list
-    const existingLocations = await storage.getLocations(defaultList.id);
-    if (existingLocations.length > 0) {
-      console.log("Default hotels already loaded, skipping initialization");
-      return;
-    }
+    // Delete existing list to force fresh initialization with geocoding
+    await storage.deleteList(defaultList.id);
+    defaultList = await storage.createList({
+      name: "Tokyo Hotels",
+      description: "Default list of hotels in Tokyo",
+    });
 
     console.log("Initializing default hotels...");
 
@@ -150,7 +149,7 @@ export async function initializeDefaultData() {
         await storage.addLocation({
           ...hotel,
           ...geocoded,
-          listId: defaultList.id
+          listId: defaultList.id,
         });
         console.log(`Added ${hotel.name} to database`);
       }

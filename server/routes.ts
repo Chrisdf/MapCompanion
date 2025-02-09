@@ -5,6 +5,7 @@ import { parseLocations } from "./lib/anthropic";
 import { searchRedditComments } from "./lib/reddit";
 import { insertLocationListSchema, insertLocationSchema } from "@shared/schema";
 import { ZodError } from "zod";
+import { amadeus } from "./lib/amadeus";
 
 export function registerRoutes(app: Express): Server {
   app.post("/api/lists", async (req, res) => {
@@ -72,7 +73,8 @@ export function registerRoutes(app: Express): Server {
       const locations = await parseLocations(input);
       res.json(locations);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       res.status(500).json({ error: errorMessage });
     }
   });
@@ -87,7 +89,42 @@ export function registerRoutes(app: Express): Server {
       const comments = await searchRedditComments(location.name);
       res.json(comments);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  app.get("/api/locations/:id/availability", async (req, res) => {
+    try {
+      const { checkIn, checkOut } = req.query;
+      const location = await storage.getLocation(Number(req.params.id));
+
+      if (!location) {
+        return res.status(404).json({ error: "Location not found" });
+      }
+
+      if (
+        !checkIn ||
+        !checkOut ||
+        typeof checkIn !== "string" ||
+        typeof checkOut !== "string"
+      ) {
+        return res
+          .status(400)
+          .json({ error: "Check-in and check-out dates are required" });
+      }
+
+      const hotelOffers = await amadeus.searchHotelOffers({
+        hotelIds: [location.placeId],
+        checkInDate: checkIn,
+        checkOutDate: checkOut,
+      });
+
+      res.json(hotelOffers);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       res.status(500).json({ error: errorMessage });
     }
   });

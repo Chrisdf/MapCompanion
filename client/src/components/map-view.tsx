@@ -110,6 +110,12 @@ export default function MapView({ center, locations, onCenterChange, onLocationS
     const mapOptions = {
       center,
       zoom: 12,
+      gestureHandling: "greedy", // Makes the map handle all gestures
+      scrollwheel: true, // Enables smooth scroll zoom
+      zoomControl: true,
+      mapTypeControl: false, // Removes unnecessary controls
+      streetViewControl: false,
+      fullscreenControl: false,
       styles: [
         {
           featureType: "poi",
@@ -124,14 +130,19 @@ export default function MapView({ center, locations, onCenterChange, onLocationS
       mapOptions
     );
 
+    // Debounce the center change event to prevent excessive updates
+    let timeoutId: NodeJS.Timeout;
     googleMapRef.current.addListener("center_changed", () => {
-      const newCenter = googleMapRef.current.getCenter();
-      if (newCenter) {
-        onCenterChange({
-          lat: newCenter.lat(),
-          lng: newCenter.lng(),
-        });
-      }
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        const newCenter = googleMapRef.current.getCenter();
+        if (newCenter) {
+          onCenterChange({
+            lat: newCenter.lat(),
+            lng: newCenter.lng(),
+          });
+        }
+      }, 100); // Debounce time in milliseconds
     });
   }
 
