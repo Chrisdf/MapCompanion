@@ -1,6 +1,9 @@
-# Running the Project
+# Opening the Project
 
 ![image](https://github.com/user-attachments/assets/d5695040-ea80-47f6-9d44-a94ae7464c9a)
+
+# Clicking on Hotel Details
+![image](https://github.com/user-attachments/assets/e5761a32-b315-44f1-89d5-aacbba871030)
 
 
 ```
